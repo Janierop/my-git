@@ -37,8 +37,8 @@ fn cat_file(hash: String) {
     // first two characters of the hash is the subdirectory name
     let sub_dir = &hash[..2];
     // remaining 38 characters is the name of the file containing the content
-    let dir = &hash[2..];
-    let path = format!(".git/objects/{dir}/{sub_dir}");
+    let file_name = &hash[2..];
+    let path = format!(".git/objects/{sub_dir}/{file_name}");
     let file = fs::File::open(path).expect("File not found.");
     let mut decoder = ZlibDecoder::new(file);
     let mut string_buf = String::new();
