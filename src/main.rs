@@ -38,14 +38,14 @@ fn cat_file(hash: String) {
     let sub_dir = &hash[..2];
     // remaining 38 characters is the name of the file containing the content
     let file_name = &hash[2..];
-    let path = format!(".git/objects/{sub_dir}/{file_name}");
+    let path = format!(".git/objects/{}/{}", sub_dir, file_name);
     let file = fs::File::open(path).expect("File not found.");
     let mut decoder = ZlibDecoder::new(file);
     let mut string_buf = String::new();
     decoder.read_to_string(&mut string_buf).expect("Error decoding file");
     // git gives blobs a header that ends with a null bite
     let (_header, result) = string_buf.split_once("\x00").unwrap();
-    print!("{result}")
+    print!("{}", result)
 }
 
 fn main() {
