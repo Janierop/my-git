@@ -1,6 +1,7 @@
 // use std::env;
-use std::fs;
+use std::{fs, io::Read};
 use clap::{Parser,Subcommand};
+use flate2::read::ZlibDecoder;
 
 #[derive(Parser)]
 #[command(name = "my-git")]
@@ -20,7 +21,7 @@ enum Commands {
         /// The hash of the commit to be printed
         #[arg(short = 'p')]
         #[arg(id = "blob_sha")]
-        sha: String,
+        hash: String,
     },
 }
 
@@ -32,6 +33,21 @@ fn init() {
     println!("Initialized git directory")
 }
 
+fn cat_file(hash: String) {
+    // first two characters of the hash is the subdirectory name
+    let sub_dir = &hash[..2];
+    // remaining 38 characters is the name of the file containing the content
+    let dir = &hash[2..];
+    let path = format!(".git/objects/{dir}/{sub_dir}");
+    let file = fs::File::open(path).expect("File not found.");
+    let mut decoder = ZlibDecoder::new(file);
+    let mut string_buf = String::new();
+    decoder.read_to_string(&mut string_buf).expect("Error decoding file");
+    // git gives blobs a header that ends with a null bite
+    let (_header, result) = string_buf.split_once("\x00").unwrap();
+    print!("{result}")
+}
+
 fn main() {
     // You can use print statements as follows for debugging, they'll be visible when running tests.
     println!("Logs from your program will appear here!");
@@ -40,7 +56,7 @@ fn main() {
 
     match &args.command {
         Commands::Init => init(),
-        Commands::CatFile { sha: _ } => todo!()
+        Commands::CatFile { hash } => cat_file(hash.to_owned())
     }
 
     // Uncomment this block to pass the first stage
