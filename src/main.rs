@@ -24,6 +24,13 @@ enum Commands {
     },
 }
 
+fn init() {
+    fs::create_dir(".git").unwrap();
+    fs::create_dir(".git/objects").unwrap();
+    fs::create_dir(".git/refs").unwrap();
+    fs::write(".git/HEAD", "ref: refs/heads/master\n").unwrap();
+    println!("Initialized git directory")
+}
 
 fn main() {
     // You can use print statements as follows for debugging, they'll be visible when running tests.
@@ -32,13 +39,7 @@ fn main() {
     let args = CLi::parse();
 
     match &args.command {
-        Commands::Init => {
-            fs::create_dir(".git").unwrap();
-            fs::create_dir(".git/objects").unwrap();
-            fs::create_dir(".git/refs").unwrap();
-            fs::write(".git/HEAD", "ref: refs/heads/master\n").unwrap();
-            println!("Initialized git directory")
-        },
+        Commands::Init => init(),
         Commands::CatFile { sha: _ } => todo!()
     }
 
