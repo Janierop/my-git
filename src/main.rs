@@ -52,33 +52,42 @@ fn cat_file(hash: String) {
     let path = format!(".git/objects/{}/{}", sub_dir, file_name);
     let file = fs::File::open(path).expect("File not found.");
     let mut decoder = ZlibDecoder::new(file);
-    let mut string_buf = String::new();
-    decoder.read_to_string(&mut string_buf).expect("Error decoding file");
+    let mut content_buffer = Vec::new();
+    decoder.read_to_end(&mut content_buffer).unwrap();
+
     // git gives blobs a header that ends with a null bite
-    let (_header, result) = string_buf.split_once("\x00").unwrap();
-    print!("{}", result)
+    let split_index = content_buffer.iter().position(|&b| b == 0).expect("Could not find a zero byte");
+    let (_head, content) = content_buffer.split_at(split_index);
+    // trim the first byte since its a zero byte
+    let content = &content[1..];
+
+    // use String::from_utf8_lossy to replace invalid utf8 chars which is what git also does
+    let content = String::from_utf8_lossy(&content);
+    
+    print!("{}", content)
 }
 
 fn hash_object(file_path: String, write: &bool) {
     let mut file = fs::File::open(file_path).expect("Error: File not found");
-    let mut content = String::new();
-    let content_length = file.read_to_string(&mut content).unwrap();
-    let final_content = format!("blob {}\x00{}", content_length, content);
+    let mut content = Vec::new();
+    let content_length = file.read_to_end(&mut content).unwrap();
+    let final_content = [b"blob ", content_length.to_string().as_bytes(), &[0], &content].concat();
 
     let mut hasher = Sha1::new();
     hasher.update(final_content.clone());
     let hash: String = hasher.finalize().encode_hex();
 
-    // encode zlib
-    let mut encoder = ZlibEncoder::new(final_content.as_bytes(), Compression::fast());
-    let mut encoded_contents = Vec::new();
-    encoder.read_to_end(&mut encoded_contents).unwrap();
-
+    
     // write only if write flag is specified
     if *write {
+        // encode zlib
+        let mut encoder = ZlibEncoder::new(&final_content[..], Compression::fast());
+        let mut encoded_contents = Vec::new();
+        encoder.read_to_end(&mut encoded_contents).unwrap();
+
         let dir = &hash[..2];
         let file_name = &hash[2..];
-        let _ = fs::create_dir(format!(".git/objects/{}", dir)); // Returns Error if dir already exists but doesnt panic
+        let _ = fs::create_dir(format!(".git/objects/{}", dir)); // Returns Error if dir already exists but doesn't panic
         fs::write(format!(".git/objects/{}/{}", dir, file_name), encoded_contents).unwrap();
     }
 
@@ -99,9 +108,6 @@ fn main() {
 mod tests {
     #[test]
     fn test1() {
-        let v = b"Hello\x00, World!";
-        let v2 = b"Hello\0, World!";
-        println!("{}", v == v2);
-        println!("{}", String::from_utf8_lossy(v2));
+        
     }
 }
