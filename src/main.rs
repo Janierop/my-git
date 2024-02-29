@@ -23,7 +23,7 @@ enum Commands {
     CatFile {
         /// The hash of the commit to be printed
         #[arg(short = 'p')]
-        #[arg(id = "blob_sha")]
+        #[arg(value_name = "blob_sha")]
         hash: String,
     },
     #[command(name = "hash-object")]
@@ -31,7 +31,7 @@ enum Commands {
         #[arg(short = 'w')]
         write: bool,
 
-        #[arg(id = "file")]
+        #[arg(value_name = "file")]
         file_path: String,
     }
 }
@@ -59,7 +59,7 @@ fn cat_file(hash: String) {
     print!("{}", result)
 }
 
-fn hash_object(file_path: String) {
+fn hash_object(file_path: String, write: &bool) {
     let mut file = fs::File::open(file_path).expect("Error: File not found");
     let mut content = String::new();
     let content_length = file.read_to_string(&mut content).unwrap();
@@ -74,10 +74,13 @@ fn hash_object(file_path: String) {
     let mut encoded_contents = Vec::new();
     encoder.read_to_end(&mut encoded_contents).unwrap();
 
-    let dir = &hash[..2];
-    let file_name = &hash[2..];
-    let _ = fs::create_dir(format!(".git/objects/{}", dir)); // Returns Error if dir already exists but doesnt panic
-    fs::write(format!(".git/objects/{}/{}", dir, file_name), encoded_contents).unwrap();
+    // write only if write flag is specified
+    if *write {
+        let dir = &hash[..2];
+        let file_name = &hash[2..];
+        let _ = fs::create_dir(format!(".git/objects/{}", dir)); // Returns Error if dir already exists but doesnt panic
+        fs::write(format!(".git/objects/{}/{}", dir, file_name), encoded_contents).unwrap();
+    }
 
     println!("{}", hash)
 }
@@ -88,7 +91,7 @@ fn main() {
     match &args.command {
         Commands::Init => init(),
         Commands::CatFile { hash } => cat_file(hash.to_owned()),
-        Commands::HashObject { write: _, file_path } => hash_object(file_path.to_owned())
+        Commands::HashObject { write, file_path } => hash_object(file_path.to_owned(), write)
     }
 }
 
