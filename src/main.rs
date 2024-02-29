@@ -1,7 +1,10 @@
 // use std::env;
 use std::{fs, io::Read};
 use clap::{Parser,Subcommand};
-use flate2::read::ZlibDecoder;
+use flate2::read::{ZlibDecoder, ZlibEncoder};
+use flate2::Compression;
+use hex::ToHex;
+use sha1::{Digest, Sha1};
 
 #[derive(Parser)]
 #[command(name = "my-git")]
@@ -23,6 +26,14 @@ enum Commands {
         #[arg(id = "blob_sha")]
         hash: String,
     },
+    #[command(name = "hash-object")]
+    HashObject {
+        #[arg(short = 'w')]
+        write: bool,
+
+        #[arg(id = "file")]
+        file_path: String,
+    }
 }
 
 fn init() {
@@ -48,23 +59,46 @@ fn cat_file(hash: String) {
     print!("{}", result)
 }
 
+fn hash_object(file_path: String) {
+    let mut file = fs::File::open(file_path).expect("Error: File not found");
+    let mut content = String::new();
+    let content_length = file.read_to_string(&mut content).unwrap();
+    let final_content = format!("blob {}\x00{}", content_length, content);
+
+    let mut hasher = Sha1::new();
+    hasher.update(final_content.clone());
+    let hash: String = hasher.finalize().encode_hex();
+
+    // encode zlib
+    let mut encoder = ZlibEncoder::new(final_content.as_bytes(), Compression::fast());
+    let mut encoded_contents = Vec::new();
+    encoder.read_to_end(&mut encoded_contents).unwrap();
+
+    let dir = &hash[..2];
+    let file_name = &hash[2..];
+    let _ = fs::create_dir(format!(".git/objects/{}", dir)); // Returns Error if dir already exists but doesnt panic
+    fs::write(format!(".git/objects/{}/{}", dir, file_name), encoded_contents).unwrap();
+
+    println!("{}", hash)
+}
+
 fn main() {
     let args = CLi::parse();
 
     match &args.command {
         Commands::Init => init(),
-        Commands::CatFile { hash } => cat_file(hash.to_owned())
+        Commands::CatFile { hash } => cat_file(hash.to_owned()),
+        Commands::HashObject { write: _, file_path } => hash_object(file_path.to_owned())
     }
+}
 
-    // Uncomment this block to pass the first stage
-    // let args: Vec<String> = env::args().collect();
-    // if args[1] == "init" {
-    //     fs::create_dir(".git").unwrap();
-    //     fs::create_dir(".git/objects").unwrap();
-    //     fs::create_dir(".git/refs").unwrap();
-    //     fs::write(".git/HEAD", "ref: refs/heads/master\n").unwrap();
-    //     println!("Initialized git directory")
-    // } else {
-    //     println!("unknown command: {}", args[1])
-    // }
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test1() {
+        let v = b"Hello\x00, World!";
+        let v2 = b"Hello\0, World!";
+        println!("{}", v == v2);
+        println!("{}", String::from_utf8_lossy(v2));
+    }
 }
