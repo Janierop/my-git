@@ -1,6 +1,6 @@
 use clap::{Args, Parser, Subcommand};
 use crate::init::init;
-use crate::cat_file::{cat_file_print, cat_file_size, cat_file_type};
+use crate::cat_file::{cat_file_print, cat_file_size, cat_file_type, ls_tree};
 use crate::hash_object::hash_object;
 
 #[derive(Parser)]
@@ -32,6 +32,14 @@ enum Commands {
 
         #[arg(value_name = "file")]
         file_path: String,
+    },
+    #[command(name = "ls-tree")]
+    LSTree {
+        #[arg(long = "name-only")]
+        name_only: bool,
+
+        #[arg(value_name = "tree-sha")]
+        hash: String
     }
 }
 
@@ -65,6 +73,8 @@ pub fn parse() {
                 _ => unreachable!()
             }
         },
-        Commands::HashObject { write, file_path } => hash_object(file_path.to_owned(), write)
+        Commands::HashObject { write, file_path } => hash_object(file_path.to_owned(), write),
+        Commands::LSTree { hash, name_only } if *name_only => ls_tree(hash),
+        _ => todo!()
     }
 }

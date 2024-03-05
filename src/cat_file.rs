@@ -36,6 +36,27 @@ pub fn cat_file_type(hash: &str) {
     println!("{}", String::from_utf8_lossy(object_type));
 }
 
+pub fn ls_tree(hash: &str) {
+    let data = read_object(&hash).unwrap();
+    let (header, content) = split_object(&data);
+    let (_object_type, _size) = split_header(header);
+
+    let mut entries = Vec::new();
+    let mut remainder = content;
+    while let Some(null_index) = remainder.iter().position(|&b| b == 0) {
+        let entry_header = &remainder[..null_index];
+        let (entry_type, path) = std::str::from_utf8(entry_header).unwrap().split_once(' ').unwrap();
+        let hash = &remainder[null_index + 1 .. null_index + 21];
+        entries.push((entry_type, path, hash));
+        remainder = &remainder[null_index + 21 ..];
+    }
+    // sort by alpha betical name
+    entries.sort_by_key(|a| a.1 );
+    for (_, path, _) in entries {
+        println!("{}", path);
+    }
+}
+
 /**
  * Reads the contents of the objet file and decompresses it
  */
