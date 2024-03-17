@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use clap::{Args, Parser, Subcommand};
 use crate::init::init;
 use crate::cat_file::{cat_file_print, cat_file_size, cat_file_type, ls_tree};
@@ -31,7 +33,7 @@ enum Commands {
         write: bool,
 
         #[arg(value_name = "file")]
-        file_path: String,
+        file_path: PathBuf,
     },
     #[command(name = "ls-tree")]
     LSTree {
@@ -73,7 +75,7 @@ pub fn parse() {
                 _ => unreachable!()
             }
         },
-        Commands::HashObject { write, file_path } => hash_object(file_path.to_owned(), write),
+        Commands::HashObject { write, file_path } => hash_object(file_path.to_owned(), *write),
         Commands::LSTree { hash, name_only } if *name_only => ls_tree(hash),
         _ => todo!()
     }
