@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 mod init;
 mod cli;
 mod cat_file;
