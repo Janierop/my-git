@@ -1,21 +1,25 @@
-use std::{fs, io::Read};
+use std::{fs, io::Read, path::PathBuf};
 use flate2::{read::{ZlibDecoder, ZlibEncoder}, Compression};
 use crate::objects::SerializedGitObject;
 
 pub struct LocalRepo {
-    root: String,
+    root: PathBuf,
 }
 
 impl LocalRepo {
-    pub fn new(root: Option<String>) -> Self {
+    pub fn new(root: Option<PathBuf>) -> Self {
         match root {
             Some(path) => LocalRepo { root: path },
-            None => LocalRepo { root: ".".to_owned() },
+            None => LocalRepo { root: PathBuf::from(r"./") },
         }
+    }
+    pub fn repo_path(&self) -> &PathBuf {
+        &self.root
     }
     // fetch data from the repo db and decompresses it
     pub fn fetch(&self, hash: &str) -> SerializedGitObject {
-        let path = format!("{}/.git/objects/{}/{}",self.root, &hash[..2], &hash[2..]);
+        // let path = format!("{}/.git/objects/{}/{}", self.root.display(), &hash[..2], &hash[2..]);
+        let path: PathBuf = [self.root.to_str().unwrap(), r".git/objects/", &hash[..2], &hash[2..]].iter().collect();
         let file = fs::File::open(path).unwrap();
         let mut decoder = ZlibDecoder::new(file);
         let mut decoded = Vec::new();
@@ -33,9 +37,12 @@ impl LocalRepo {
         let _ = encoder.read_to_end(&mut encoded_content);
         let dir = &hash[..2];
         let file_name = &hash[2..];
-        let _ = fs::create_dir_all(format!("{}/.git/objects/{}", self.root, dir));
+        let path: PathBuf = [self.root.to_str().unwrap(), r".git/objects/", dir].iter().collect();
+        let _ = fs::create_dir_all(&path);
+        let mut path = path.clone();
+        path.push(file_name);
         fs::write(
-            format!("{}/.git/objects/{}/{}", self.root, dir, file_name),
+            path,
             encoded_content,
         )
         .unwrap();
