@@ -5,6 +5,7 @@ use crate::init::init;
 use crate::cat_file::{cat_file_print, cat_file_size, cat_file_type, ls_tree};
 use crate::hash_object::hash_object;
 use crate::repo::LocalRepo;
+use crate::write_tree;
 
 #[derive(Parser)]
 #[command(name = "mygit")]
@@ -47,7 +48,9 @@ enum Commands {
 
         #[arg(value_name = "tree-sha")]
         hash: String
-    }
+    },
+    #[command(name = "write-tree")]
+    WriteTree
 }
 
 #[derive(Args)]
@@ -84,6 +87,7 @@ pub fn parse() {
         },
         Commands::HashObject { write, file_path } => hash_object(repo, file_path.to_owned(), *write),
         Commands::LSTree { hash, name_only } if *name_only => ls_tree(repo, hash),
+        Commands::WriteTree => write_tree::write_tree(&repo),
         _ => todo!()
     }
 }

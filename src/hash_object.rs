@@ -18,5 +18,5 @@ pub fn hash_object(repo: LocalRepo, file_path: PathBuf, write: bool) {
     } else {
         blob.calculate_hash()
     };
-    println!("{}", hash);
+    println!("{}", hex::encode(hash));
 }

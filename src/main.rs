@@ -6,6 +6,7 @@ mod hash_object;
 mod repo;
 mod test;
 mod objects;
+mod write_tree;
 
 fn main() {
     cli::parse()

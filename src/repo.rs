@@ -27,26 +27,27 @@ impl LocalRepo {
         SerializedGitObject::from(decoded)
     }
     // store data as a file in the repo db
-    pub fn store(&self, object: &SerializedGitObject) -> String {
+    pub fn store(&self, object: &SerializedGitObject) -> [u8; 20] {
         let hash = object.calculate_hash();
+        let hash_hex = hex::encode(&hash);
         let bytes = object.bytes();
 
         //compress and stoZlibDecoder
         let mut encoder = ZlibEncoder::new(&bytes[..], Compression::fast());
         let mut encoded_content = Vec::with_capacity(bytes.len() / 2);
         let _ = encoder.read_to_end(&mut encoded_content);
-        let dir = &hash[..2];
-        let file_name = &hash[2..];
+        let dir = &hash_hex[..2];
+        let file_name = &hash_hex[2..];
         let path: PathBuf = [self.root.to_str().unwrap(), r".git/objects/", dir].iter().collect();
         let _ = fs::create_dir_all(&path);
         let mut path = path.clone();
         path.push(file_name);
+        dbg!(hash_hex);
         fs::write(
             path,
             encoded_content,
         )
         .unwrap();
-
         hash
     }
 }

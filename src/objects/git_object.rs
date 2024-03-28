@@ -14,6 +14,8 @@ pub enum GitObject {
 pub trait PrettyPrintable {
     fn pretty_print(&self) -> String;
 }
+
+/// Uncompressed data that makes up a Git Object file
 pub struct SerializedGitObject {
     pub(super) bytes: Vec<u8>,
 }
@@ -35,10 +37,10 @@ impl SerializedGitObject {
         &self.bytes[null_pos + 1 ..]
     }
 
-    pub fn calculate_hash(&self) -> String {
+    pub fn calculate_hash(&self) -> [u8; 20] {
         let mut hasher = Sha1::new();
         hasher.update(&self.bytes);
-        format!("{:x}", hasher.finalize())
+        hasher.finalize().into()
     }
 
     pub fn deserialize(self) -> GitObject {
